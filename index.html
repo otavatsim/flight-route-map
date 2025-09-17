@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orca Transport Association</title>
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Mapbox GL JS -->
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.17.0/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.17.0/mapbox-gl.js"></script>
+  <!-- Turf.js for route calculations -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+</head>
+<body class="bg-white text-gray-800">
+
+  <!-- Header / Navbar -->
+  <header class="bg-green-600 text-white p-4 flex justify-between items-center">
+    <h1 class="text-xl font-bold">Orca Transport Association</h1>
+    <nav class="space-x-2">
+      <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Home</a>
+      <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Routes</a>
+      <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Membership</a>
+      <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Contact</a>
+    </nav>
+  </header>
+
+  <!-- Map Section -->
+  <section class="p-4">
+    <div id="map" class="w-full h-[600px] rounded shadow-lg"></div>
+  </section>
+
+  <!-- Route Info Cards -->
+  <section class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4" id="route-cards">
+    <!-- Cards will be dynamically generated -->
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-green-700 text-white p-4 text-center">
+    © 2016 Orca Transport Association
+  </footer>
+
+  <!-- Map Script -->
+  <script>
+    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; // Replace with your Mapbox token
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [-95, 37],
+      zoom: 3
+    });
+
+    // Airports data
+    const airports = [
+      { code: "DCA", name: "Washington, D.C.", coords: [-77.0369, 38.9072] },
+      { code: "LAX", name: "Los Angeles", coords: [-118.2437, 34.0522] },
+      { code: "SEA", name: "Seattle", coords: [-122.3321, 47.6062] },
+      { code: "SFO", name: "San Francisco", coords: [-122.4194, 37.7749] }
+    ];
+
+    // Routes data
+    const routes = [
+      { from: "DCA", to: "LAX", frequency: "5 flights/day", operator: "OTA Airlines" },
+      { from: "SEA", to: "SFO", frequency: "3 flights/day", operator: "OTA Airlines" }
+    ];
+
+    // Add airport markers
+    airports.forEach(airport => {
+      new mapboxgl.Marker({ color: '#2F855A' })
+        .setLngLat(airport.coords)
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>${airport.code} - ${airport.name}</b>`))
+        .addTo(map);
+    });
+
+    // Draw routes and create cards
+    map.on('load', () => {
+      routes.forEach((route, index) => {
+        const fromAirport = airports.find(a => a.code === route.from);
+        const toAirport = airports.find(a => a.code === route.to);
+        if (!fromAirport || !toAirport) return;
+
+        // Draw route line
+        const line = turf.greatCircle(fromAirport.coords, toAirport.coords, { npoints: 64 });
+        const sourceId = `route-${index}`;
+        map.addSource(sourceId, { type: 'geojson', data: line });
+        map.addLayer({
+          id: `route-layer-${index}`,
+          type: 'line',
+          source: sourceId,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#2F855A', 'line-width': 3 }
+        });
+
+        // Create route card
+        const cardContainer = document.getElementById('route-cards');
+        const card = document.createElement('div');
+        card.className = 'bg-white border-l-4 border-green-600 p-4 shadow';
+        card.innerHTML = `
+          <h2 class="font-bold text-lg">Route: ${route.from} → ${route.to}</h2>
+          <p>Frequency: ${route.frequency}</p>
+          <p>Operator: ${route.operator}</p>
+        `;
+        cardContainer.appendChild(card);
+      });
+    });
+  </script>
+
+</body>
+</html>
