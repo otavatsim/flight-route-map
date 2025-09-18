@@ -17,7 +17,7 @@
   <!-- Header / Navbar -->
   <header class="bg-green-600 text-white p-4 flex justify-between items-center">
     <h1 class="text-xl font-bold">Orca Transport Association</h1>
-    <nav class="space-x-2">
+    <nav>
       <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Home</a>
       <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Routes</a>
       <a href="#" class="px-3 py-2 hover:bg-green-700 rounded">Membership</a>
@@ -31,8 +31,17 @@
   </section>
 
   <!-- Route Info Cards -->
-  <section class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4" id="route-cards">
-    <!-- Cards will be dynamically generated -->
+  <section class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white border-l-4 border-green-600 p-4 shadow">
+      <h2 class="font-bold text-lg">Route: DCA → LAX</h2>
+      <p>Frequency: 5 flights/day</p>
+      <p>Operator: OTA Airlines</p>
+    </div>
+    <div class="bg-white border-l-4 border-green-600 p-4 shadow">
+      <h2 class="font-bold text-lg">Route: SEA → SFO</h2>
+      <p>Frequency: 3 flights/day</p>
+      <p>Operator: OTA Airlines</p>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -42,66 +51,54 @@
 
   <!-- Map Script -->
   <script>
-    mapboxgl.accessToken = 'YOUR_MAPBOX_ACCESS_TOKEN'; // Replace with your Mapbox token
+    mapboxgl.accessToken = 'pk.eyJ1Ijoiam9iczEwMDAwIiwiYSI6ImNtZGh0b3NuNTA1ZHQya3NidHp2bTVoZXcifQ.Yhw63MxR-rZ2MEbsDOVjtQ'; // Replace with your token
 
     const map = new mapboxgl.Map({
       container: 'map',
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [-95, 37],
+      center: [-95, 37], // Center of the US
       zoom: 3
     });
 
-    // Airports data
+    // Example airports
     const airports = [
-      { code: "DCA", name: "Washington, D.C.", coords: [-77.0369, 38.9072] },
-      { code: "LAX", name: "Los Angeles", coords: [-118.2437, 34.0522] },
-      { code: "SEA", name: "Seattle", coords: [-122.3321, 47.6062] },
-      { code: "SFO", name: "San Francisco", coords: [-122.4194, 37.7749] }
-    ];
-
-    // Routes data
-    const routes = [
-      { from: "DCA", to: "LAX", frequency: "5 flights/day", operator: "OTA Airlines" },
-      { from: "SEA", to: "SFO", frequency: "3 flights/day", operator: "OTA Airlines" }
+      { name: "DCA - Washington, D.C.", coords: [-77.0369, 38.9072] },
+      { name: "LAX - Los Angeles", coords: [-118.2437, 34.0522] },
+      { name: "SEA - Seattle", coords: [-122.3321, 47.6062] },
+      { name: "SFO - San Francisco", coords: [-122.4194, 37.7749] }
     ];
 
     // Add airport markers
     airports.forEach(airport => {
-      new mapboxgl.Marker({ color: '#2F855A' })
+      new mapboxgl.Marker({ color: '#2F855A' }) // green marker
         .setLngLat(airport.coords)
-        .setPopup(new mapboxgl.Popup().setHTML(`<b>${airport.code} - ${airport.name}</b>`))
+        .setPopup(new mapboxgl.Popup().setHTML(`<b>${airport.name}</b>`))
         .addTo(map);
     });
 
-    // Draw routes and create cards
-    map.on('load', () => {
-      routes.forEach((route, index) => {
-        const fromAirport = airports.find(a => a.code === route.from);
-        const toAirport = airports.find(a => a.code === route.to);
-        if (!fromAirport || !toAirport) return;
+    // Example route lines
+    const routes = [
+      { from: airports[0].coords, to: airports[1].coords }, // DCA → LAX
+      { from: airports[2].coords, to: airports[3].coords }  // SEA → SFO
+    ];
 
-        // Draw route line
-        const line = turf.greatCircle(fromAirport.coords, toAirport.coords, { npoints: 64 });
-        const sourceId = `route-${index}`;
-        map.addSource(sourceId, { type: 'geojson', data: line });
-        map.addLayer({
-          id: `route-layer-${index}`,
-          type: 'line',
-          source: sourceId,
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#2F855A', 'line-width': 3 }
-        });
+    routes.forEach(route => {
+      const line = turf.greatCircle(route.from, route.to, { npoints: 64 });
+      map.on('load', () => {
+        if (!map.getSource('route-' + route.from)) {
+          map.addSource('route-' + route.from, {
+            type: 'geojson',
+            data: line
+          });
 
-        // Create route card
-        const cardContainer = document.getElementById('route-cards');
-        const card = document.createElement('div');
-        card.className = 'bg-white border-l-4 border-green-600 p-4 shadow';
-        card.innerHTML = `
-          <h2 class="font-bold text-lg">Route: ${route.from} → ${route.to}</h2>
-          <p>Frequency: ${route.frequency}</p>
-          <p>Operator: ${route.operator}</p>
-        `;
-        cardContainer.appendChild(card);
+          map.addLayer({
+            id: 'route-layer-' + route.from,
+            type: 'line',
+            source: 'route-' + route.from,
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-color': '#2F855A', 'line-width': 3 }
+          });
+        }
       });
     });
   </script>
